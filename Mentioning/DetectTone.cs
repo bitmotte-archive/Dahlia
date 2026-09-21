@@ -1,8 +1,21 @@
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-
-using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Dahlia.Mentioning;
+
+[Serializable]
+public class DetectToneLoadError : Exception
+{
+    public DetectToneLoadError ()
+    {}
+
+    public DetectToneLoadError (string message) 
+        : base(message)
+    {}
+
+    public DetectToneLoadError (string message, Exception innerException)
+        : base (message, innerException)
+    {}    
+}
 
 static class DetectTone
 {
@@ -10,213 +23,154 @@ static class DetectTone
     public static int exhaustion = 0;
     public static DateTimeOffset mostRecent = new();
 
+    const string BASE_DIR = "data/";
+
+    private static Dictionary<Tone, Dictionary<StatementType, Dictionary<Addressing, string[]>>> responseKeys = [];
+    private static Dictionary<Tone, HashSet<string>> toneKeys = [];
+    private static Dictionary<Addressing, HashSet<string>> addressingKeys = [];
+    private static Dictionary<StatementType, HashSet<string>> statementKeys = [];
+
+    private static Dictionary<T, HashSet<string>> LoadEnumThingy<T>(string dirName) where T: struct, Enum
+    {
+        var tones = Enum.GetValues<T>();
+        var list = new Dictionary<T, HashSet<string>>();
+
+        foreach (T t in tones)
+        {
+            var toneName = t.ToString().ToLower();
+            Console.Out.WriteLine($"Loading {toneName}");
+            try
+            {
+                var keys = File.ReadAllLines(Path.Join(BASE_DIR, $"{dirName}/{toneName}"));
+                var set = new HashSet<string>(keys);
+                list.Add(t, set);
+            } catch (FileNotFoundException)
+            {
+                Console.Out.WriteLine($"failed to load key {toneName}, not found :broken_heart:");
+                throw new DetectToneLoadError(toneName);
+            }
+        }
+
+        Console.Out.WriteLine($"Loaded {list.Count} enum entries");
+        return list;
+    }
+
     public static void Init()
     {
-        
+        Console.Out.WriteLine($"Initializing Dahlia DetectTone");
+
+        toneKeys = LoadEnumThingy<Tone>("tone-keys");
+        addressingKeys = LoadEnumThingy<Addressing>("addressing-keys");
+        statementKeys = LoadEnumThingy<StatementType>("type-keys");
+
+        var tones = Enum.GetValues<Tone>();
+
+        // holy ugly nesting (if it works it works ig)
+        foreach (Tone t in tones)
+        {
+            responseKeys.Add(t, []);
+            var toneName = t.ToString().ToLower();
+            var statementTypes = Enum.GetValues<StatementType>();
+            foreach (StatementType s in statementTypes)
+            {
+                responseKeys[t].Add(s, []);
+                var statementName = s.ToString().ToLower();
+                var addressings = Enum.GetValues<Addressing>();
+                foreach (Addressing a in addressings)
+                {
+                    responseKeys[t][s].Add(a, []);
+                    var addressingName = a.ToString().ToLower();
+                    var keys = File.ReadAllLines(Path.Join(BASE_DIR, $"responses/{toneName}/{statementName}/{addressingName}"));
+                    responseKeys[t][s][a] = keys;
+                }
+            }
+            
+        }
+    }
+
+    private static void CheckTone<T>(string word, ref Dictionary<T, int> list, Dictionary<T, HashSet<string>> wordListDict) where T: struct, Enum
+    {
+        foreach (var item in wordListDict)
+        {
+            if (!item.Value.Contains(word)) continue;
+
+            var newValue = list.GetValueOrDefault(item.Key) + 1;
+            list.Add(item.Key, newValue);
+        }
+    }
+
+    private static T DeduceTone<T>(Dictionary<T, int> toneValues, T defaultValue, bool includeDefault = true) where T: struct, Enum
+    {
+        var finalTone = defaultValue;
+        var minValue = int.MaxValue;
+        var maxValue = 0;
+        var allValues = Enum.GetValues<T>();
+        foreach (var key in allValues)
+        {
+            if (key.Equals(defaultValue) && !includeDefault) continue;
+            var val = toneValues.GetValueOrDefault(key);
+            minValue = Math.Min(val, minValue);
+            maxValue = Math.Max(val, maxValue);
+            Console.Out.WriteLine($"{key}: {val}");
+            if (val > 0 && maxValue == val) finalTone = key;
+        }
+
+        if (minValue == maxValue) return defaultValue;
+        return finalTone;
     }
 
     public static string Predict(string message)
     {
-        //keys
-        string[] aggressiveKeys = File.ReadAllLines("Mentioning/tone-keys/aggressive");
-        string[] loveKeys = File.ReadAllLines("Mentioning/tone-keys/love");
+        var messageSplit = message.ToLower().Split(' ');
 
-        string[] dahliaKeys = File.ReadAllLines("Mentioning/addressing-keys/dahlia");
-        string[] userKeys = File.ReadAllLines("Mentioning/addressing-keys/user");
-
-        string[] questionKeys = File.ReadAllLines("Mentioning/type-keys/question");
-        string[] statementKeys = File.ReadAllLines("Mentioning/type-keys/statement");
-
-        char[] acceptableCharacters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
-
-        //inputs
-        string[] messageSplit = message.ToLower().Split(' ');
-
-        //sentiments
-        float tone = 0;
-        float addressing = 0;
-        float type = 0;
+        // sentiments
+        var tones = new Dictionary<Tone, int>();
+        var addressing = new Dictionary<Addressing, int>();
+        var statementType = new Dictionary<StatementType, int>();
         foreach (string split in messageSplit)
         {
-            string processedSplit = "";
-            foreach (char character in split.ToCharArray())
-            {
-                bool accepted = false;
-                foreach (char acceptableChar in acceptableCharacters)
-                {
-                    if(character == acceptableChar) accepted = true;
-                }
-                if(accepted ) processedSplit += character;
-            }
+            var replaced = Regex.Replace(split, @"[^a-z]", "");
 
-            foreach (string aggressive in aggressiveKeys) {if(processedSplit.Contains(aggressive)) tone += 0.2f;}
-            foreach (string love in loveKeys) {if(processedSplit.Contains(love)) tone -= 0.2f;}
-
-            foreach (string dahlia in dahliaKeys) {if(processedSplit.Contains(dahlia)) addressing += 0.2f;}
-            foreach (string user in userKeys) {if(processedSplit.Contains(user)) addressing -= 0.2f;}
-
-            foreach (string question in questionKeys) {if(processedSplit.Contains(question)) type += 0.2f;}
-            foreach (string statement in statementKeys) {if(processedSplit.Contains(statement)) type -= 0.2f;};
+            CheckTone(replaced, ref tones, toneKeys);
+            CheckTone(replaced, ref addressing, addressingKeys);
+            CheckTone(replaced, ref statementType, statementKeys);
         }
 
-        Tones finalTone = Tones.neutral;
-        if(tone > 0.1) finalTone = Tones.aggressive;
-        if(tone < -0.1) finalTone = Tones.lovely;
+        var finalTone = DeduceTone(tones, Tone.Neutral, false);
+        var finalAddressing = DeduceTone(addressing, Addressing.Dahlia);
+        var finalType = DeduceTone(statementType, StatementType.Statement);
 
-        Addressing finalAddressing = Addressing.dahlia;
-        if(addressing > 0) finalAddressing = Addressing.dahlia;
-        if(addressing < 0) finalAddressing = Addressing.user;
-
-        Types finalType = Types.statement;
-        if(type > 0) finalType = Types.question;
-        if(type < 0) finalType = Types.statement;
+        Console.Out.WriteLine($"Deduced tone: {finalTone}");
+        Console.Out.WriteLine($"Deduced addressing: {finalAddressing}");
+        Console.Out.WriteLine($"Deduced type: {finalType}");
 
         return SelectResponse(finalTone, finalAddressing, finalType);
     }
 
-    public static string SelectResponse(Tones tone, Addressing addressing, Types type)
+    public static string SelectResponse(Tone tone, Addressing addressing, StatementType type)
     {
+        var rng = new Random();
 
-        Random rng = new();
-        string[] responses = [];
-        string response = "";
-
-        switch (tone)
-        {
-            case Tones.aggressive:
-                switch (type)
-                {
-                    case Types.question:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/aggressive/question/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/aggressive/question/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                    case Types.statement:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/aggressive/statement/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/aggressive/statement/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                }
-                break;
-
-            case Tones.lovely:
-                switch (type)
-                {
-                    case Types.question:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/lovely/question/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/lovely/question/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                    case Types.statement:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/lovely/statement/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/lovely/statement/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                }
-                break;
-
-            case Tones.neutral:
-                switch (type)
-                {
-                    case Types.question:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/neutral/question/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/neutral/question/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                    case Types.statement:
-                        switch (addressing)
-                        {
-                            case Addressing.dahlia:
-                                responses = File.ReadAllLines("Mentioning/responses/neutral/statement/dahlia");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-
-                            case Addressing.user:
-                                responses = File.ReadAllLines("Mentioning/responses/neutral/statement/user");
-                                response = responses[rng.Next(0,responses.Length)];
-                                break;
-                                
-                        }
-                        break;
-
-                }
-                break;
-        }
-
-        return response;
+        var responseList = responseKeys[tone][type][addressing];
+        return responseList[rng.Next(0,responseList.Length)];
     }
 
-    public enum Tones
+    public enum Tone
     {
-        lovely,
-        neutral,
-        aggressive
+        Lovely,
+        Neutral,
+        Aggressive
     }
     
     public enum Addressing
     {
-        dahlia,
-        user
+        Dahlia,
+        User
     }
 
-    public enum Types
+    public enum StatementType
     {
-        question,
-        statement
+        Question,
+        Statement
     }
 }

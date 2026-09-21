@@ -9,22 +9,21 @@ using NetCord.Rest;
 
 namespace Dahlia.Events;
 
-public class MessageCreateHandler(RestClient client, ILogger<MessageCreateHandler> logger) : IMessageCreateGatewayHandler
+public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHandler
 {
     public ValueTask HandleAsync(Message message)
     {
-        logger.LogInformation("{}", message.Content);
-        if(!message.Author.IsBot)
-        {
-            Leveller.ManageUser(client, message.Author.Id);
+        if(message.Author.IsBot) return default;
 
-            bool dahliaConversation = false;
-            if(message.Content.ToLower().Contains("<@1516464108092788950>")) dahliaConversation = true;
-            if(dahliaConversation)
-            {
-                SendMessage.Send(client, message.ChannelId, DetectTone.Predict(message.Content));   
-            }
+        Leveller.ManageUser(client, message.Author.Id);
+
+        bool dahliaConversation = false;
+        if(message.Content.ToLower().Contains("<@1516464108092788950>")) dahliaConversation = true;
+        if(dahliaConversation)
+        {
+            SendMessage.Send(client, message.ChannelId, DetectTone.Predict(message.Content));   
         }
+
         return default;
     }
 }

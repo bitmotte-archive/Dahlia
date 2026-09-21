@@ -14,12 +14,11 @@ static class Bot
         var builder = Host.CreateApplicationBuilder(args);
 
         DotEnv.Load();
-        IDictionary<string,string> envVars = DotEnv.Read();
 
         builder.Services.AddDiscordGateway(options =>
         {
             options.Intents = GatewayIntents.GuildMessages | GatewayIntents.MessageContent;
-            options.Token = envVars["WowTHisIsTheEnvironmentVariableForTheDahliaDiscordBotTokenForBluhenServerSoCool"];
+            options.Token = Environment.GetEnvironmentVariable("WowTHisIsTheEnvironmentVariableForTheDahliaDiscordBotTokenForBluhenServerSoCool");
         }).AddGatewayHandlers(typeof(Bot).Assembly);
         
         var host = builder.Build();

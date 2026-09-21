@@ -1,0 +1,8 @@
+services:
+  dahlia:
+    restart: unless-stopped
+    image: ghcr.io/bitmotte-dev/dahlia:${IMAGE_TAG}
+    volumes:
+      - ./Databases:/app/Databases
+    environment:
+      WowTHisIsTheEnvironmentVariableForTheDahliaDiscordBotTokenForBluhenServerSoCool: ${BOT_TOKEN}

@@ -15,47 +15,40 @@ public class LevelsDatabaseHandler {
 
     public void AddUser(ulong user)
     {
-        string query = "";
-        
-        query = $"SELECT * FROM levels;";
-        List<Levels> result = _db.Query<Levels>(query);
-
-        bool alreadyExists = false;
-        foreach (Levels row in result)
-        {
-            if(row.Id == user)
-            {
-                alreadyExists = true;
-                break;
-            }
-        }
+        List<Levels> result = _db.Query<Levels>("SELECT * FROM levels WHERE user_id = ?;", user);
+        var alreadyExists = result.Count > 0;
 
         if(!alreadyExists)
         {
             Console.WriteLine("User doesn't exist, registering . . .");
-            query = $"INSERT INTO levels VALUES ('{user}', '0', '0');";
-            _db.Query<Levels>(query);
+            _db.Query<Levels>("INSERT INTO levels VALUES (?, 0, 0);", user);
         }
+    }
+
+    public void StartTx()
+    {
+        _db.BeginTransaction();
+    }
+
+    public void CommitTx()
+    {
+        _db.Commit();
+    }
+
+    public void RollbackTx()
+    {
+        _db.Rollback();
     }
 
     public Levels GetLevelByUser(ulong id)
     {
-        string query = "";
-        
-        query = $"SELECT * FROM levels WHERE user_id = {id};";
-        Levels result = _db.FindWithQuery<Levels>(query);
-
+        Levels result = _db.FindWithQuery<Levels>("SELECT * FROM levels WHERE user_id = ?;", id);
         return result;
     }
 
     public void UpdateUserLevel(ulong id, int level, int exp)
     {
-        string query = "";
-        
-        query = $"UPDATE levels SET level={level} WHERE user_id = {id};";
-        _db.Query<Levels>(query);
-
-        query = $"UPDATE levels SET exp={exp} WHERE user_id = {id};";
-        _db.Query<Levels>(query);
+        _db.Query<Levels>("UPDATE levels SET level = ? WHERE user_id = ?;", level, id);
+        _db.Query<Levels>("UPDATE levels SET exp = ? WHERE user_id = ?;", exp, id);
     }
 }	

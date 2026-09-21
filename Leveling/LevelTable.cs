@@ -5,7 +5,7 @@ namespace Dahlia.Leveling;
 [Table("levels")]	 
 public class Levels		
 {		
-    [PrimaryKey, AutoIncrement]
+    [PrimaryKey]
     [Column("user_id")]		
     public ulong Id { get; set; }	
 
