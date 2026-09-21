@@ -18,7 +18,12 @@ public class MessageCreateHandler(RestClient client, ILogger<MessageCreateHandle
         {
             Leveller.ManageUser(client, message.Author.Id);
 
-            SendMessage.Send(client, message.ChannelId, DetectTone.Predict(message.Content));
+            bool dahliaConversation = false;
+            if(message.Content.ToLower().Contains("<@1516464108092788950>")) dahliaConversation = true;
+            if(dahliaConversation)
+            {
+                SendMessage.Send(client, message.ChannelId, DetectTone.Predict(message.Content));   
+            }
         }
         return default;
     }

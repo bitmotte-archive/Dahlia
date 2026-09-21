@@ -6,6 +6,9 @@ namespace Dahlia.Mentioning;
 
 static class DetectTone
 {
+    public static ulong[] recentUsers = [];
+    public static int exhaustion = 0;
+    public static DateTimeOffset mostRecent = new();
 
     public static void Init()
     {
@@ -45,16 +48,15 @@ static class DetectTone
                 }
                 if(accepted ) processedSplit += character;
             }
-            if(processedSplit == "dahlia") processedSplit = "";
 
-            foreach (string aggressive in aggressiveKeys) {if(aggressive == processedSplit) tone += 0.2f;}
-            foreach (string love in loveKeys) {if(love == processedSplit) tone -= 0.2f;}
+            foreach (string aggressive in aggressiveKeys) {if(processedSplit.Contains(aggressive)) tone += 0.2f;}
+            foreach (string love in loveKeys) {if(processedSplit.Contains(love)) tone -= 0.2f;}
 
-            foreach (string dahlia in dahliaKeys) {if(dahlia == processedSplit) addressing += 0.2f;}
-            foreach (string user in userKeys) {if(user == processedSplit) addressing -= 0.2f;}
+            foreach (string dahlia in dahliaKeys) {if(processedSplit.Contains(dahlia)) addressing += 0.2f;}
+            foreach (string user in userKeys) {if(processedSplit.Contains(user)) addressing -= 0.2f;}
 
-            foreach (string question in questionKeys) {if(question == processedSplit) type += 0.2f;}
-            foreach (string statement in statementKeys) {if(statement == processedSplit) type -= 0.2f;};
+            foreach (string question in questionKeys) {if(processedSplit.Contains(question)) type += 0.2f;}
+            foreach (string statement in statementKeys) {if(processedSplit.Contains(statement)) type -= 0.2f;};
         }
 
         Tones finalTone = Tones.neutral;
