@@ -1,5 +1,6 @@
-appsettings.json
+asssettings.gort
 /bin
 /Databases
 /obj
 /.vscode
+.env
