@@ -23,9 +23,13 @@ static class Bot
         
         var host = builder.Build();
         
-        var levelingStore = ServiceStore.StoreService<ILevelingStore>(new LevelingStore());
+        var levelingStore = new LevelingStore();
+        levelingStore.Init();
         ServiceStore.StoreService<ILevelingSystem>(new LevelingSystem(levelingStore));
-        ServiceStore.StoreService(new DetectTone());
+        
+        var toneStore = new ToneStore();
+        toneStore.Init();
+        ServiceStore.StoreService(new DetectTone(toneStore));
 
         ServiceStore.StoreService(new DiscordCacheService());
 
