@@ -1,7 +1,5 @@
 using Dahlia.Leveling;
 using Dahlia.Mentioning;
-using Dahlia.Utilities;
-using Microsoft.Extensions.Logging;
 
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
@@ -11,19 +9,18 @@ namespace Dahlia.Events;
 
 public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHandler
 {
-    public ValueTask HandleAsync(Message message)
+    public async ValueTask HandleAsync(Message message)
     {
-        if(message.Author.IsBot) return default;
+        if(message.Author.IsBot) return;
 
-        Leveller.ManageUser(client, message.Author.Id);
+        var levelingSystem = ServiceStore.GetService<ILevelingSystem>();
+        await levelingSystem.ProcessUser(client, message.Author.Id);
 
-        bool dahliaConversation = false;
-        if(message.Content.ToLower().Contains("<@1516464108092788950>")) dahliaConversation = true;
-        if(dahliaConversation)
-        {
-            SendMessage.Send(client, message.ChannelId, DetectTone.Predict(message.Content));   
-        }
+        var cacheStore = ServiceStore.GetService<DiscordCacheService>();
+        if (!message.Content.ToLower().Contains($"<@{cacheStore.SelfUser.Id}>")) return;
 
-        return default;
+        var detectTone = ServiceStore.GetService<DetectTone>();
+        await client.SendMessageAsync(message.ChannelId, detectTone.Predict(message.Content));   
+        return;
     }
 }

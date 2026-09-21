@@ -17,20 +17,20 @@ public class DetectToneLoadError : Exception
     {}    
 }
 
-static class DetectTone
+public class DetectTone : IService
 {
-    public static ulong[] recentUsers = [];
-    public static int exhaustion = 0;
-    public static DateTimeOffset mostRecent = new();
+    public ulong[] recentUsers = [];
+    public int exhaustion = 0;
+    public DateTimeOffset mostRecent = new();
 
     const string BASE_DIR = "data/";
 
-    private static Dictionary<Tone, Dictionary<StatementType, Dictionary<Addressing, string[]>>> responseKeys = [];
-    private static Dictionary<Tone, HashSet<string>> toneKeys = [];
-    private static Dictionary<Addressing, HashSet<string>> addressingKeys = [];
-    private static Dictionary<StatementType, HashSet<string>> statementKeys = [];
+    private Dictionary<Tone, Dictionary<StatementType, Dictionary<Addressing, string[]>>> responseKeys = [];
+    private Dictionary<Tone, HashSet<string>> toneKeys = [];
+    private Dictionary<Addressing, HashSet<string>> addressingKeys = [];
+    private Dictionary<StatementType, HashSet<string>> statementKeys = [];
 
-    private static Dictionary<T, HashSet<string>> LoadEnumThingy<T>(string dirName) where T: struct, Enum
+    private Dictionary<T, HashSet<string>> LoadEnumThingy<T>(string dirName) where T: struct, Enum
     {
         var tones = Enum.GetValues<T>();
         var list = new Dictionary<T, HashSet<string>>();
@@ -43,7 +43,7 @@ static class DetectTone
             {
                 var keys = File.ReadAllLines(Path.Join(BASE_DIR, $"{dirName}/{toneName}"));
                 var set = new HashSet<string>(keys);
-                list.Add(t, set);
+                list[t] = set;
             } catch (FileNotFoundException)
             {
                 Console.Out.WriteLine($"failed to load key {toneName}, not found :broken_heart:");
@@ -55,7 +55,7 @@ static class DetectTone
         return list;
     }
 
-    public static void Init()
+    public void Init()
     {
         Console.Out.WriteLine($"Initializing Dahlia DetectTone");
 
@@ -68,17 +68,17 @@ static class DetectTone
         // holy ugly nesting (if it works it works ig)
         foreach (Tone t in tones)
         {
-            responseKeys.Add(t, []);
+            responseKeys[t] = [];
             var toneName = t.ToString().ToLower();
             var statementTypes = Enum.GetValues<StatementType>();
             foreach (StatementType s in statementTypes)
             {
-                responseKeys[t].Add(s, []);
+                responseKeys[t][s] = [];
                 var statementName = s.ToString().ToLower();
                 var addressings = Enum.GetValues<Addressing>();
                 foreach (Addressing a in addressings)
                 {
-                    responseKeys[t][s].Add(a, []);
+                    responseKeys[t][s][a] = [];
                     var addressingName = a.ToString().ToLower();
                     var keys = File.ReadAllLines(Path.Join(BASE_DIR, $"responses/{toneName}/{statementName}/{addressingName}"));
                     responseKeys[t][s][a] = keys;
@@ -88,18 +88,18 @@ static class DetectTone
         }
     }
 
-    private static void CheckTone<T>(string word, ref Dictionary<T, int> list, Dictionary<T, HashSet<string>> wordListDict) where T: struct, Enum
+    private void CheckTone<T>(string word, ref Dictionary<T, int> list, Dictionary<T, HashSet<string>> wordListDict) where T: struct, Enum
     {
         foreach (var item in wordListDict)
         {
             if (!item.Value.Contains(word)) continue;
 
             var newValue = list.GetValueOrDefault(item.Key) + 1;
-            list.Add(item.Key, newValue);
+            list[item.Key] = newValue;
         }
     }
 
-    private static T DeduceTone<T>(Dictionary<T, int> toneValues, T defaultValue, bool includeDefault = true) where T: struct, Enum
+    private T DeduceTone<T>(Dictionary<T, int> toneValues, T defaultValue, bool includeDefault = true) where T: struct, Enum
     {
         var finalTone = defaultValue;
         var minValue = int.MaxValue;
@@ -119,7 +119,7 @@ static class DetectTone
         return finalTone;
     }
 
-    public static string Predict(string message)
+    public string Predict(string message)
     {
         var messageSplit = message.ToLower().Split(' ');
 
@@ -147,7 +147,7 @@ static class DetectTone
         return SelectResponse(finalTone, finalAddressing, finalType);
     }
 
-    public static string SelectResponse(Tone tone, Addressing addressing, StatementType type)
+    public string SelectResponse(Tone tone, Addressing addressing, StatementType type)
     {
         var rng = new Random();
 

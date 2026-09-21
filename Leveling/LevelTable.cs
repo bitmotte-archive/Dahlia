@@ -9,7 +9,7 @@ public class Levels
     [Column("user_id")]		
     public ulong Id { get; set; }	
 
-    [Column("level")]		
+    [Column("level")]
     public int Level { get; set; }
 
     [Column("exp")]		
