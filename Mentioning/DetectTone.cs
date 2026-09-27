@@ -91,7 +91,7 @@ public class DetectTone(ToneStore store) : IService
         if(currentAnger.Sentiment > 5) return SelectStrongResponse(Strong.Irritated);
         if(currentAnger.Sentiment < -5) return SelectStrongResponse(Strong.Overjoyed);
 
-        return $"{SelectResponse(finalTone, finalAddressing, finalType)} ------ {currentAnger.Sentiment}";
+        return SelectResponse(finalTone, finalAddressing, finalType);
     }
 
     public string SelectResponse(Tone tone, Addressing addressing, StatementType type)
