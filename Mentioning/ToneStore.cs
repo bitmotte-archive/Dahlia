@@ -29,6 +29,9 @@ public class ToneStore : IToneStore
     private Dictionary<Addressing, HashSet<string>> _addressingKeys = [];
     private Dictionary<StatementType, HashSet<string>> _statementKeys = [];
 
+    private string[] irritatedKeys = [];
+    private string[] overjoyedKeys = [];
+
     private Dictionary<T, HashSet<string>> LoadEnumThingy<T>(string dirName) where T: struct, Enum
     {
         var tones = Enum.GetValues<T>();
@@ -85,12 +88,22 @@ public class ToneStore : IToneStore
             }
             
         }
+
+        irritatedKeys = File.ReadAllLines(Path.Join(BASE_DIR, $"responses/irritated"));
+        overjoyedKeys = File.ReadAllLines(Path.Join(BASE_DIR, $"responses/overjoyed"));
     }
 
     public string[] GetResponsesFor(Tone tone, Addressing addressing, StatementType type)
     {
         var responseList = _responseKeys[tone][type][addressing];
         return responseList;
+    }
+
+    public string[] GetStrongResponsesFor(Strong strong)
+    {
+        if(strong == Strong.Irritated) return irritatedKeys;
+        if(strong == Strong.Overjoyed) return overjoyedKeys;
+        return ["shit went wrong man fuck god damnit hey <@1414406914669805662> hey <@1414406914669805662> your bot is broken go fix it"];
     }
 
     public Tone? MatchWordTone(string word)

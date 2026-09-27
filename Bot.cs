@@ -31,6 +31,11 @@ static class Bot
         toneStore.Init();
         ServiceStore.StoreService(new DetectTone(toneStore));
 
+        //is this right i dont know what thesr are
+        var angerStore = new AngerStore();
+        angerStore.Init();
+        ServiceStore.StoreService(angerStore);
+
         ServiceStore.StoreService(new DiscordCacheService());
 
         await host.RunAsync();

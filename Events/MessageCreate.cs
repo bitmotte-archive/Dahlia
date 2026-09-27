@@ -20,7 +20,7 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
         if (!message.Content.ToLower().Contains($"<@{cacheStore.SelfUser.Id}>")) return;
 
         var detectTone = ServiceStore.GetService<DetectTone>();
-        await client.SendMessageAsync(message.ChannelId, detectTone.Predict(message.Content));   
+        await client.SendMessageAsync(message.ChannelId, detectTone.Predict(message.Content, message.Author.Id));   
         return;
     }
 }

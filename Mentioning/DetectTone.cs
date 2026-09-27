@@ -8,12 +8,13 @@ public static partial class DahliaRegex
   public static partial Regex ToneRegex();
 }
 
+struct WiiSportsResotr
+{
+    
+}
+
 public class DetectTone(ToneStore store) : IService
 {
-    public ulong[] recentUsers = [];
-    public int exhaustion = 0;
-    public DateTimeOffset mostRecent = new();
-
     private readonly ToneStore _store = store;
 
     private T DeduceTone<T>(Dictionary<T, int> toneValues, T defaultValue, bool includeDefault = true) where T: struct, Enum
@@ -36,7 +37,7 @@ public class DetectTone(ToneStore store) : IService
         return finalTone;
     }
 
-    public string Predict(string message)
+    public string Predict(string message, ulong userId)
     {
         var messageSplit = message.ToLower().Split(' ');
 
@@ -78,13 +79,32 @@ public class DetectTone(ToneStore store) : IService
         Console.Out.WriteLine($"Deduced addressing: {finalAddressing}");
         Console.Out.WriteLine($"Deduced type: {finalType}");
 
-        return SelectResponse(finalTone, finalAddressing, finalType);
+        var angerStore = ServiceStore.GetService<AngerStore>();
+        angerStore.EnsureUser(userId);
+
+        Anger currentAnger = angerStore.GetAngerByUser(userId);
+        if(finalTone == Tone.Lovely) currentAnger.Sentiment--;
+        if(finalTone == Tone.Aggressive) currentAnger.Sentiment++;
+
+        angerStore.UpdateAngerLevel(userId, currentAnger.Sentiment);
+
+        if(currentAnger.Sentiment > 5) return SelectStrongResponse(Strong.Irritated);
+        if(currentAnger.Sentiment < -5) return SelectStrongResponse(Strong.Overjoyed);
+
+        return $"{SelectResponse(finalTone, finalAddressing, finalType)} ------ {currentAnger.Sentiment}";
     }
 
     public string SelectResponse(Tone tone, Addressing addressing, StatementType type)
     {
         var rng = new Random();
         var responses = _store.GetResponsesFor(tone, addressing, type);
+        return responses[rng.Next(0,responses.Length)];
+    }
+
+    public string SelectStrongResponse(Strong strong)
+    {
+        var rng = new Random();
+        var responses = _store.GetStrongResponsesFor(strong);
         return responses[rng.Next(0,responses.Length)];
     }
 
@@ -108,4 +128,16 @@ public class DetectTone(ToneStore store) : IService
         Statement = 0,
         Question
     }
+    
+    public enum Strong
+    {
+        Irritated = 0,
+        Overjoyed
+    }
+}struct WiiSportsResotr2
+{
+    
+}struct WiiSportsResotr3
+{
+    
 }
