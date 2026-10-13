@@ -5,10 +5,10 @@ namespace Dahlia.Events;
 
 public class ReadyHandler : IReadyGatewayHandler
 {
-    public ValueTask HandleAsync(ReadyEventArgs ev)
+    public async ValueTask HandleAsync(ReadyEventArgs ev)
     {
         var cacheService = ServiceStore.GetService<DiscordCacheService>();
         cacheService.SelfUser = ev.User;
-        return default;
+        return;
     }
 }

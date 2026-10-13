@@ -17,7 +17,7 @@ static class Bot
 
         builder.Services.AddDiscordGateway(options =>
         {
-            options.Intents = GatewayIntents.GuildMessages | GatewayIntents.MessageContent;
+            options.Intents = GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.Guilds;
             options.Token = Environment.GetEnvironmentVariable("WowTHisIsTheEnvironmentVariableForTheDahliaDiscordBotTokenForBluhenServerSoCool");
         }).AddGatewayHandlers(typeof(Bot).Assembly);
         

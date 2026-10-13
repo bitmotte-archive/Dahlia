@@ -17,30 +17,54 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
         var levelingSystem = ServiceStore.GetService<ILevelingSystem>();
         await levelingSystem.ProcessUser(client, message.Author.Id);
 
-        if(message.Content.Contains("DahliaPingPongMessage>>>"))
+        if(message.Content.StartsWith("DahliaPingPongMessage>>>"))
         {
-            if(message.Author.Username != "bitmotte") {await client.SendMessageAsync(message.ChannelId, "Only <@1414406914669805662> can use this command");
-            return;
-            
-            /*h*/}
+            if (message.Guild == null)
+            {
+                await client.SendMessageAsync(message.ChannelId, "twin you can only use this in servers");
+                return;
+            }
+
+            var member = await message.Guild.GetUserAsync(message.Author.Id);
+            var hasRole = member.RoleIds.Any((v) => v == 1559681998694649956);
+
+            if(!hasRole) {
+                await client.SendMessageAsync(message.ChannelId, "You do not have permission to run this command.");
+                return;
+            }
+
             string trimmed = message.Content;
             trimmed = trimmed.Replace("DahliaPingPongMessage>>>", "");
 
-            MessageProperties pingPongMessage = new();
-
-            pingPongMessage.Content = trimmed;
-            AttachmentProperties[] pingPongAttachments = [];
-            WebClient wc = new WebClient();
-            foreach (Attachment attachment in message.Attachments)
+            MessageProperties pingPongMessage = new()
             {
-                pingPongAttachments = [.. pingPongAttachments, new(attachment.FileName, new MemoryStream(wc.DownloadData(attachment.Url)))];
-            }
+                Content = trimmed
+            };
+
+            var attachments = message.Attachments;
+            var attachmentCount = message.Attachments.Count;
+
+            AttachmentProperties[] pingPongAttachments = new AttachmentProperties[attachmentCount];
+            var httpClient = new HttpClient();
+            await Parallel.ForAsync(0, attachmentCount, async (i, ct) =>
+            {
+                var attachment = attachments[i];
+                var res = await httpClient.GetAsync(attachment.Url);
+                var stream = await res.Content.ReadAsStreamAsync();
+                pingPongAttachments[i] = new AttachmentProperties(attachment.FileName, stream);
+            });
+
             pingPongMessage.Attachments = pingPongAttachments;
-            
-            //pingPongMessage.Attachments 
 
             await client.SendMessageAsync(message.ChannelId, pingPongMessage);
-            await client.DeleteMessageAsync(message.ChannelId, message.Id);
+            try
+            {
+                await client.DeleteMessageAsync(message.ChannelId, message.Id);
+            } catch (RestException e)
+            {
+                if (e.Error?.Code != 403) throw e;
+                Console.Out.WriteLine($"No permission to delete message");
+            }
         }
 
         var cacheStore = ServiceStore.GetService<DiscordCacheService>();
