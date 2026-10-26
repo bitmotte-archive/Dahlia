@@ -76,7 +76,16 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
 
             AttachmentProperties[] attachments = new AttachmentProperties[1];
             var httpClient = new HttpClient();
-            var res = await httpClient.GetAsync("https://media.discordapp.net/attachments/1496477006399934586/1564146065811181568/low-quality-bass.jpg?ex=6ae0340a&is=6adee28a&hm=c539c07992c40ae82deddfb709ba8abc6723722aa5c431f5df946d6daba1eb52&=&format=webp");
+            Random rng = new();
+
+            HttpResponseMessage res = null; 
+            if(rng.Next(1, 100) == 67)
+            {
+                res = await httpClient.GetAsync("https://media.discordapp.net/attachments/1546170637901500597/1564154457686544445/thedevil.png?ex=6ae03bdb&is=6adeea5b&hm=3815a6f8a59075f69ef40b6f554ded42ecceffb15bf34fdcdf74b88592802856&=&format=webp&quality=lossless");
+            } else
+            {
+                res = await httpClient.GetAsync("https://media.discordapp.net/attachments/1496477006399934586/1564146065811181568/low-quality-bass.jpg?ex=6ae0340a&is=6adee28a&hm=c539c07992c40ae82deddfb709ba8abc6723722aa5c431f5df946d6daba1eb52&=&format=webp");
+            }
             var stream = await res.Content.ReadAsStreamAsync();
             attachments[0] = new AttachmentProperties("low-quality-bass.jpg", stream);
 
