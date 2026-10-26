@@ -67,6 +67,24 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
             }
         }
 
+        if(message.Content.ToLower().StartsWith("dgenerate"))
+        {
+            MessageProperties messafe = new()
+            {
+                Content = "here you go"
+            };
+
+            AttachmentProperties[] attachments = new AttachmentProperties[1];
+            var httpClient = new HttpClient();
+            var res = await httpClient.GetAsync("https://media.discordapp.net/attachments/1496477006399934586/1564146065811181568/low-quality-bass.jpg?ex=6ae0340a&is=6adee28a&hm=c539c07992c40ae82deddfb709ba8abc6723722aa5c431f5df946d6daba1eb52&=&format=webp");
+            var stream = await res.Content.ReadAsStreamAsync();
+            attachments[0] = new AttachmentProperties("low-quality-bass.jpg", stream);
+
+            messafe.Attachments = attachments;
+
+            await client.SendMessageAsync(message.ChannelId, messafe);
+        }
+
         var cacheStore = ServiceStore.GetService<DiscordCacheService>();
         if (!message.Content.ToLower().Contains($"<@{cacheStore.SelfUser.Id}>")) return;
 
