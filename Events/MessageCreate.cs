@@ -81,13 +81,13 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
             HttpResponseMessage res = null; 
             if(rng.Next(1, 100) == 67)
             {
-                res = await httpClient.GetAsync("");
+                res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/negative-bass.jpg");
             } else
             {
-                res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/negative-bass.jpg");
+                res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/low-quality-bass.jpg");
             }
             var stream = await res.Content.ReadAsStreamAsync();
-            attachments[0] = new AttachmentProperties("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/low-quality-bass.jpg", stream);
+            attachments[0] = new AttachmentProperties("fish", stream);
 
             messafe.Attachments = attachments;
 
