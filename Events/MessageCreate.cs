@@ -87,7 +87,7 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
                 res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/low-quality-bass.jpg");
             }
             var stream = await res.Content.ReadAsStreamAsync();
-            attachments[0] = new AttachmentProperties("fish", stream);
+            attachments[0] = new AttachmentProperties("fish.jpg", stream);
 
             messafe.Attachments = attachments;
 
