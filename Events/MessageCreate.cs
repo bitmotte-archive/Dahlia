@@ -84,10 +84,10 @@ public class MessageCreateHandler(RestClient client) : IMessageCreateGatewayHand
                 res = await httpClient.GetAsync("");
             } else
             {
-                res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/Dahlia/refs/heads/main/low-quality-bass.jpg?token=GHSAT0AAAAAAECLREX643NSK3LR6RM4MA4U2XCW5UQ");
+                res = await httpClient.GetAsync("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/negative-bass.jpg");
             }
             var stream = await res.Content.ReadAsStreamAsync();
-            attachments[0] = new AttachmentProperties("https://raw.githubusercontent.com/bitmotte-dev/Dahlia/refs/heads/main/negative-bass.jpg?token=GHSAT0AAAAAAECLREX6IA4SYTHBXUFUG4AA2XCW5VA", stream);
+            attachments[0] = new AttachmentProperties("https://raw.githubusercontent.com/bitmotte-dev/images/refs/heads/main/low-quality-bass.jpg", stream);
 
             messafe.Attachments = attachments;
 
